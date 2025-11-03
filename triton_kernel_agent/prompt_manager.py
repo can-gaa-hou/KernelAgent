@@ -52,8 +52,8 @@ class PromptManager:
         if templates_dir:
             self.templates_dir = Path(templates_dir)
         else:
-            # Default to templates directory relative to this file
-            self.templates_dir = Path(__file__).parent.parent / "templates"
+            # Default to bundled templates directory within the package
+            self.templates_dir = Path(__file__).parent / "templates"
 
         if not self.templates_dir.exists():
             raise FileNotFoundError(

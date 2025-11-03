@@ -34,7 +34,6 @@ dependencies = [
     "python-dotenv",
     "gradio",
     "requests",
-    "pathlib2>=2.3.0; python_version < '3.4'",
 ]
 
 [project.optional-dependencies]
@@ -53,7 +52,13 @@ list-models = "scripts.list_models:main"
 "Repository" = "https://github.com/pytorch-labs/KernelAgent"
 
 [tool.setuptools.packages.find]
-include = ["triton_kernel_agent*", "scripts"]
+include = ["triton_kernel_agent*", "Fuser*", "scripts"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"triton_kernel_agent" = ["templates/*.j2"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
