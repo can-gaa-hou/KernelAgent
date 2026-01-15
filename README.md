@@ -62,7 +62,7 @@ Note: By default, KernelAgent UI searches for KernelBench at the same level as `
 You can export keys directly or use an `.env` file that the CLIs load automatically.
 
 ```bash
-OPENAI_MODEL=gpt-5            # default model for extraction
+LLM_MODEL=gpt-5               # default model for extraction
 NUM_KERNEL_SEEDS=4            # parallel workers per kernel
 MAX_REFINEMENT_ROUNDS=10      # retry budget per worker
 LOG_LEVEL=INFO                # logging level

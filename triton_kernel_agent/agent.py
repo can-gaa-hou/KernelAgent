@@ -60,7 +60,7 @@ class TritonKernelAgent:
         self.num_workers = num_workers or int(os.getenv("NUM_KERNEL_SEEDS", "4"))
         self.max_rounds = max_rounds or int(os.getenv("MAX_REFINEMENT_ROUNDS", "10"))
         self.model_name = model_name or os.getenv(
-            "OPENAI_MODEL", "claude-sonnet-4-20250514"
+            "LLM_MODEL", "claude-sonnet-4-20250514"
         )
         self.high_reasoning_effort = high_reasoning_effort
 

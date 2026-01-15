@@ -480,7 +480,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Output directory for composed artifacts",
     )
     p.add_argument(
-        "--model", default=os.getenv("OPENAI_MODEL") or "gpt-5", help="LLM model name"
+        "--model", default=os.getenv("LLM_MODEL") or "gpt-5", help="LLM model name"
     )
     p.add_argument(
         "--verify",

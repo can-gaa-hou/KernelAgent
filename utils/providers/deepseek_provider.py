@@ -14,6 +14,7 @@
 
 """DeepSeek provider implementation."""
 
+from typing import Any, Dict, List
 from .openai_base import OpenAICompatibleProvider
 
 
@@ -30,10 +31,27 @@ class DeepSeekProvider(OpenAICompatibleProvider):
     def name(self) -> str:
         return "deepseek"
 
+    def supports_multiple_completions(self) -> bool:
+        """DeepSeek currently rejects n>1 for chat.completions.
+
+        The agent will fall back to issuing multiple single-completion calls.
+        """
+        return False
+
     def get_max_tokens_limit(self, model_name: str) -> int:
         """Get max tokens limit for DeepSeek models.
-        
-        Note: DeepSeek models support up to 64K input context window,
-        but this method returns the output token limit for completions.
+
+        deepseek-reasoner supports up to 65536 tokens.
+        deepseek-chat supports up to 8192 tokens.
         """
+        if model_name == "deepseek-reasoner":
+            return 65536
         return 8192
+
+    def _build_api_params(
+        self, model_name: str, messages: List[Dict[str, str]], **kwargs
+    ) -> Dict[str, Any]:
+        """Set temperature to 0.0 for DeepSeek models."""
+        api_params = super()._build_api_params(model_name, messages, **kwargs)
+        api_params["temperature"] = 0.0
+        return api_params
