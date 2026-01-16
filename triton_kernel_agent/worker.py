@@ -176,6 +176,10 @@ class VerificationWorker:
         except ValueError as e:
             # Provider not available, will use mock mode
             self.logger.warning(f"Provider not available: {e}")
+        
+        if self.provider.tools:
+            from utils.tools import ContextManager
+            self.context = ContextManager()
 
     def _setup_logging(self):
         """Setup worker-specific logging."""
@@ -453,6 +457,28 @@ class VerificationWorker:
 
             self.logger.info(f"Round {round_num + 1}/{self.max_rounds}")
 
+            if self.provider.tools:
+                success = self.run_tool_calls(
+                    kernel_code=current_kernel,
+                    problem_description=problem_description,
+                    test_code=test_code,
+                    round_num=round_num,
+                )
+
+                if success:
+                    self.logger.info(
+                        f"Success! Kernel passed test in round {round_num + 1}"
+                    )
+                    return {
+                        "worker_id": self.worker_id,
+                        "success": True,
+                        "kernel_code": self.kernel_file.read_text(),
+                        "rounds": round_num + 1,
+                        "history": list(self.history),
+                    }
+                continue
+
+
             # Write files - test only on first round, kernel every round
             if round_num == 0:
                 # First round: write both kernel and test
@@ -518,3 +544,76 @@ class VerificationWorker:
             "rounds": self.max_rounds,
             "history": list(self.history),
         }
+
+    def run_tool_calls(
+        self,
+        kernel_code: str,
+        test_code: str,
+        problem_description: str,
+        round_num: int,
+    ) -> bool:
+        # Check for disallowed PyTorch usage
+        violation = self._detect_pytorch_compute(kernel_code)
+        
+        if round_num == 0:
+            # First round: write both kernel and test
+            self._write_files(kernel_code, test_code)
+
+            # Run first-round test
+            success, stdout, stderr = (
+                self._run_test()
+                if os.getenv("KA_PROCESS_USE_SYS_EXECUTABLE", "1") == "1"
+                else _run_test_multiprocess(self.logger, self.workdir, self.test_file)
+            )
+
+            if success and not violation:
+                return True
+            
+            system_prompt = self.prompt_manager.render_kernel_refinement_prompt_with_tool_calls(
+                    problem_description=problem_description,
+                    test_code_path=self.test_file,
+                    kernel_code_path=self.kernel_file,
+                )
+            
+            self.context.add_message("system", system_prompt)
+            self.context.add_message("user", f"STDOUT: {stdout}\nSTDERR: {stderr}")
+            self.logger.info(f"System Prompt: {system_prompt}")
+            self.logger.info(f"User Input: STDOUT: {stdout}\nSTDERR: {stderr}")
+
+        if violation:
+            self.context.add_message("user", f"Disallowed PyTorch usage: {violation}")
+
+        response = self.provider.get_response(
+            model_name=self.openai_model,
+            messages=self.context.get_messages(),
+            system_prompt=self.context.system_prompt,
+            tools=True,
+        )
+
+        content = response.content
+        tool_calls = response.tool_calls
+        
+        self.context.add_message("assistant", content, tool_calls=tool_calls)
+        self.logger.info(f"Assistant Response: {content}")
+        
+        # if no tool calls, then the assistant is done
+        if not tool_calls:
+            return True
+            
+        for tool_call in tool_calls:
+            func_name = tool_call["function"]["name"]
+            args_str = tool_call["function"]["arguments"]
+            call_id = tool_call["id"]
+            
+            try:
+                args = json.loads(args_str)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"JSON parsing failed: {str(e)}. Please check your arguments format.")
+
+            self.logger.info(f"Tool Call: {func_name} args={args_str}")
+            result = self.provider.execute_tool(func_name, args, self.workdir)
+            self.logger.info(f"Tool Result: {str(result)}")
+            
+            self.context.add_message("tool", str(result), tool_call_id=call_id)
+        
+        return False

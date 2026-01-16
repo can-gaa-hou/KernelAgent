@@ -16,7 +16,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Dict, List
 import os
 
 
@@ -29,6 +29,7 @@ class LLMResponse:
     provider: str
     usage: dict[str, Any] | None = None
     response_id: str | None = None
+    tool_calls: list[dict[str, Any]] | None = None
 
 
 class BaseProvider(ABC):
@@ -36,6 +37,7 @@ class BaseProvider(ABC):
 
     def __init__(self):
         self.client = None
+        self.tools = None
         self._initialize_client()
 
     @abstractmethod
@@ -103,3 +105,11 @@ class BaseProvider(ABC):
         if api_key and api_key != "your-api-key-here":
             return api_key
         return None
+
+    def build_tools(self) -> List[Dict[str, Any]]:
+        """Build the tools for the LLM provider."""
+        return []
+    
+    def execute_tool(self, name: str, args: Dict[str, Any]) -> str:
+        """Execute a tool by name with arguments."""
+        raise NotImplementedError("Tool execution not implemented for this provider")

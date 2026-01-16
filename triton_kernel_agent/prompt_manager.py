@@ -88,6 +88,7 @@ class PromptManager:
             "test_generation": "test_generation.j2",
             "kernel_generation": "kernel_generation.j2",
             "kernel_refinement": "kernel_refinement.j2",
+            "kernel_refinement_with_tool_calls": "kernel_refinement_with_tool_calls.j2",
             "triton_guidelines": "triton_guidelines.j2",
         }
 
@@ -184,6 +185,39 @@ class PromptManager:
             kernel_code=kernel_code,
             error_info=error_info,
             history_context=history_context,
+            triton_guidelines=triton_guidelines,
+            kernel_guidance=self.target_platform.kernel_guidance,
+        )
+
+    def render_kernel_refinement_prompt_with_tool_calls(
+        self,
+        problem_description: str,
+        test_code_path: str,
+        kernel_code_path: str,
+        triton_guidelines: str | None = None,
+    ) -> str:
+        """
+        Render the kernel refinement prompt.
+
+        Args:
+            problem_description: Description of the problem
+            test_code_path: Path to the test code that the kernel must pass
+            kernel_code_path: Path to the current kernel implementation
+            triton_guidelines: Optional guidelines (if None, loads from template)
+
+        Returns:
+            Rendered prompt string
+        """
+        template = self.templates["kernel_refinement_with_tool_calls"]
+
+        # Load triton guidelines if not provided
+        if triton_guidelines is None:
+            triton_guidelines = self.render_triton_guidelines()
+        
+        return template.render(
+            problem_description=problem_description,
+            test_code_path=test_code_path,
+            kernel_code_path=kernel_code_path,
             triton_guidelines=triton_guidelines,
             kernel_guidance=self.target_platform.kernel_guidance,
         )
