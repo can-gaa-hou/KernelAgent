@@ -216,6 +216,18 @@ class TritonKernelAgent:
             try:
                 self.logger.info(f"Generating test code using {self.model_name}")
 
+                messages = []
+                if os.getenv("USE_FEW_SHOT", "0") == "1":
+                    self.logger.info("Using few-shot examples for kernel generation")
+                    problems, tests, _ = self.prompt_manager.load_few_shot_examples()
+                    for p, t in zip(problems, tests):
+                        p_prompt = self.prompt_manager.render_test_generation_prompt(
+                            problem_description=p,
+                            provided_test_code=None,
+                        )
+                        messages.append({"role": "user", "content": p_prompt})
+                        messages.append({"role": "assistant", "content": t})
+
                 # Create prompt for test generation using template
                 prompt = self.prompt_manager.render_test_generation_prompt(
                     problem_description=problem_description,
@@ -223,7 +235,7 @@ class TritonKernelAgent:
                 )
 
                 # Call LLM API
-                messages = [{"role": "user", "content": prompt}]
+                messages.append({"role": "user", "content": prompt})
                 response_text = self._call_llm(messages, max_tokens=24000)
                 self.logger.info("Raw test generation response:\n%s", response_text)
 
@@ -337,13 +349,25 @@ if __name__ == "__main__":
                     f"Generating {num_seeds} kernel seeds using {self.model_name}"
                 )
 
+                messages = []
+                if os.getenv("USE_FEW_SHOT", "0") == "1":
+                    self.logger.info("Using few-shot examples for kernel generation")
+                    problems, tests, kernels = self.prompt_manager.load_few_shot_examples()
+                    for p, t, k in zip(problems, tests, kernels):
+                        p_prompt = self.prompt_manager.render_kernel_generation_prompt(
+                            problem_description=p,
+                            test_code=t,
+                        )
+                        messages.append({"role": "user", "content": p_prompt})
+                        messages.append({"role": "assistant", "content": k})
+
                 # Create prompt with Triton guidelines using template
                 prompt = self.prompt_manager.render_kernel_generation_prompt(
                     problem_description=problem_description, test_code=test_code
                 )
 
                 kernels = []
-                messages = [{"role": "user", "content": prompt}]
+                messages.append({"role": "user", "content": prompt})
 
                 # Use provider's multiple response capability
                 max_completion_tokens = 20000

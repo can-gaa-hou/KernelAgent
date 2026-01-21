@@ -1,0 +1,54 @@
+import torch
+
+class Model(torch.nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+
+    def forward(self, x, y, z):
+        # Fused dot-compress operation
+        # Step 1: Compute X^T @ Y (batch matrix multiplication)
+        xty = torch.bmm(x.permute(0, 2, 1), y)
+        
+        # Step 2: Add Z and multiply with X
+        out = torch.bmm(x, xty + z)
+        
+        return out
+
+# Define input dimensions and parameters
+
+B=2048
+NUM_EMB, DIM, NUM_COMPRESS_EMB = 512, 128, 32
+
+def generate_dot_compress_inputs(
+    B: int,  # batch size
+    NUM_EMB: int,  # num embeddings
+    DIM: int,  # embedding dimension
+    NUM_COMPRESS_EMB: int,  # num compressed embeddings
+    dtype: torch.dtype = torch.float16,  # dtype of the inputs
+    requires_grad: bool = False,
+) -> tuple[
+    torch.Tensor,
+    torch.Tensor,
+    torch.Tensor,
+]:
+    x = torch.randn(
+        (B, NUM_EMB, DIM),
+        device="cuda",
+        dtype=dtype,
+    ).requires_grad_(requires_grad)
+    y = torch.randn(
+        (B, NUM_EMB, NUM_COMPRESS_EMB),
+        device="cuda",
+        dtype=dtype,
+    ).requires_grad_(requires_grad)
+    z = torch.randn(
+        (B, DIM, NUM_COMPRESS_EMB),
+        device="cuda",
+        dtype=dtype,
+    ).requires_grad_(requires_grad)
+
+    return x, y, z
+
+
+def get_init_inputs():
+    return []
