@@ -286,3 +286,35 @@ class PromptManager:
     def reload_templates(self):
         """Reload all templates from disk."""
         self._load_templates()
+
+    def load_few_shot_examples(self) -> tuple[list[str], list[str], list[str]]:
+        """
+        Load few-shot examples from the 'few_shot' subdirectory.
+
+        Returns:
+            Tuple of two lists: (problems, answers)
+        """
+        few_shot_dir = self.templates_dir / "few_shot"
+        problems = []
+        tests = []
+        kernels = []
+
+        if not few_shot_dir.exists() or not few_shot_dir.is_dir():
+            raise FileNotFoundError(f"Few-shot directory not found: {few_shot_dir}")
+
+        # Iterate over shot directories (e.g., shot-1, shot-2, ...)
+        for shot_dir in sorted(few_shot_dir.iterdir()):
+            if shot_dir.is_dir():
+                problem_file = shot_dir / "problem.txt"
+                test_file = shot_dir / "test.py"
+                kernel_file = shot_dir / "kernel.py"
+
+                if problem_file.exists() and test_file.exists() and kernel_file.exists():
+                    with open(problem_file, "r") as pf:
+                        problems.append(pf.read().strip())
+                    with open(test_file, "r") as tf:
+                        tests.append(tf.read().strip())
+                    with open(kernel_file, "r") as kf:
+                        kernels.append(kf.read().strip())
+
+        return problems, tests, kernels

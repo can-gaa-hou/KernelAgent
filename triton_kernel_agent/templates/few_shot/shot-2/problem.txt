@@ -1,0 +1,38 @@
+import torch
+import torch.nn as nn
+
+
+class Model(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+
+        # read MN ; write M
+        x_max = x.max(dim=1).values
+
+        # read MN + M ; write MN
+        z = x - x_max[:, None]
+
+        # read MN ; write MN
+        numerator = torch.exp(z)
+
+        # read MN ; write M
+        denominator = numerator.sum(dim=1)
+
+        # read MN + M ; write MN
+        y = numerator / denominator[:, None]
+
+        return y
+
+
+M = 4096
+N = 4096
+
+def get_inputs():
+    x = torch.rand(M, N)
+    return [x]
+
+def get_init_inputs():
+    return []
