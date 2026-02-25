@@ -18,6 +18,7 @@ from utils.providers.model_config import ModelConfig
 from utils.providers.openai_provider import OpenAIProvider
 from utils.providers.anthropic_provider import AnthropicProvider
 from utils.providers.relay_provider import RelayProvider
+from utils.providers.deepseek_provider import DeepSeekProvider
 
 
 # Registry of all available models (external/OSS version)
@@ -68,5 +69,16 @@ AVAILABLE_MODELS = [
         name="gpt-5-2",
         provider_classes=[RelayProvider],
         description="GPT-5.2 flagship model (Dec 2025) - Note the name is different from the OpenAI model",
+    ),
+    # DeepSeek Models
+    ModelConfig(
+        name="deepseek-chat",
+        provider_classes=[DeepSeekProvider],
+        description="DeepSeek Chat - general purpose model",
+    ),
+    ModelConfig(
+        name="deepseek-reasoner",
+        provider_classes=[DeepSeekProvider],
+        description="DeepSeek Reasoner - reasoning model",
     ),
 ]
